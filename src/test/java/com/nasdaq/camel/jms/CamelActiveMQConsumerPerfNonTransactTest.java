@@ -90,39 +90,39 @@ public class CamelActiveMQConsumerPerfNonTransactTest extends CamelTestSupport {
 
     @Override
     protected void doPostSetup() throws Exception {
-        super.doPostSetup(); //To change body of generated methods, choose Tools | Templates.
+        super.doPostSetup();
 
-            final EventNotifierSupport eventNotifier = new EventNotifierSupport() {
+        final EventNotifierSupport eventNotifier = new EventNotifierSupport() {
 
-                @Override
-                public void notify(EventObject event) throws Exception {
-                    if (event instanceof ExchangeSentEvent) {
-                        ExchangeSentEvent sent = (ExchangeSentEvent) event;
-                        System.out.println("Took " + sent.getTimeTaken() + " millis to send to: " + sent.getEndpoint());
-                    }
+            @Override
+            public void notify(EventObject event) throws Exception {
+                if (event instanceof ExchangeSentEvent) {
+                    ExchangeSentEvent sent = (ExchangeSentEvent) event;
+                    System.out.println("Took " + sent.getTimeTaken() + " millis to send to: " + sent.getEndpoint());
                 }
+            }
 
-                @Override
-                public boolean isEnabled(EventObject event) {
-                    // we only want the sent events
-                    return event instanceof ExchangeSentEvent;
-                }
+            @Override
+            public boolean isEnabled(EventObject event) {
+                // we only want the sent events
+                return event instanceof ExchangeSentEvent;
+            }
 
-                @Override
-                protected void doStart() throws Exception {
-                    // noop
-                }
+            @Override
+            protected void doStart() throws Exception {
+                // noop
+            }
 
-                @Override
-                protected void doStop() throws Exception {
-                    // noop
-                }
-            };
+            @Override
+            protected void doStop() throws Exception {
+                // noop
+            }
+        };
 
-            context.getManagementStrategy().addEventNotifier(eventNotifier);
+        context.getManagementStrategy().addEventNotifier(eventNotifier);
 //            eventNotifier.start();
     }
-    
+
     @Before
     public void setUp() throws Exception {
         broker = new BrokerService();

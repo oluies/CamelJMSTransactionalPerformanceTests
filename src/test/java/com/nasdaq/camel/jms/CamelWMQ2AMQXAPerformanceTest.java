@@ -6,9 +6,9 @@ import com.atomikos.jms.AtomikosConnectionFactoryBean;
 import com.ibm.mq.jms.MQConnectionFactory;
 import com.ibm.mq.jms.MQXAConnectionFactory;
 import com.ibm.msg.client.wmq.WMQConstants;
+import java.util.EventObject;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
 import javax.jms.XAConnectionFactory;
 import javax.transaction.SystemException;
@@ -20,14 +20,15 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.component.jms.JmsComponent;
 import org.apache.camel.impl.UriEndpointComponent;
+import org.apache.camel.management.event.ExchangeSentEvent;
 import org.apache.camel.spring.SpringRouteBuilder;
+import org.apache.camel.support.EventNotifierSupport;
 import org.apache.camel.test.spring.CamelSpringTestSupport;
 import org.junit.After;
 import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -236,6 +237,41 @@ public class CamelWMQ2AMQXAPerformanceTest extends CamelSpringTestSupport {
     private AbstractApplicationContext ac;
 
     private final int counter = 30;
+
+    @Override
+    protected void doPostSetup() throws Exception {
+        super.doPostSetup();
+
+        final EventNotifierSupport eventNotifier = new EventNotifierSupport() {
+
+            @Override
+            public void notify(EventObject event) throws Exception {
+                if (event instanceof ExchangeSentEvent) {
+                    ExchangeSentEvent sent = (ExchangeSentEvent) event;
+                    System.out.println("Took " + sent.getTimeTaken() + " millis to send to: " + sent.getEndpoint());
+                }
+            }
+
+            @Override
+            public boolean isEnabled(EventObject event) {
+                // we only want the sent events
+                return event instanceof ExchangeSentEvent;
+            }
+
+            @Override
+            protected void doStart() throws Exception {
+                // noop
+            }
+
+            @Override
+            protected void doStop() throws Exception {
+                // noop
+            }
+        };
+
+        context.getManagementStrategy().addEventNotifier(eventNotifier);
+        eventNotifier.start();
+    }
 
     @Before
     public void setUp() throws Exception {
