@@ -1,5 +1,6 @@
 package com.nasdaq.camel.jms;
 
+import java.util.EventObject;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.activemq.ActiveMQConnectionFactory;
@@ -10,7 +11,9 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.component.jms.JmsComponent;
 import org.apache.camel.component.jms.JmsConfiguration;
+import org.apache.camel.management.event.ExchangeSentEvent;
 import org.apache.camel.spring.SpringRouteBuilder;
+import org.apache.camel.support.EventNotifierSupport;
 import org.apache.camel.test.junit4.CamelTestSupport;
 import org.junit.After;
 import org.junit.Before;
@@ -82,9 +85,44 @@ public class CamelActiveMQConsumerPerfNonTransactTest extends CamelTestSupport {
         }
     }
 
-    private final int counter = 3000;
+    private final int counter = 30;
     private BrokerService broker;
 
+    @Override
+    protected void doPostSetup() throws Exception {
+        super.doPostSetup(); //To change body of generated methods, choose Tools | Templates.
+
+            final EventNotifierSupport eventNotifier = new EventNotifierSupport() {
+
+                @Override
+                public void notify(EventObject event) throws Exception {
+                    if (event instanceof ExchangeSentEvent) {
+                        ExchangeSentEvent sent = (ExchangeSentEvent) event;
+                        System.out.println("Took " + sent.getTimeTaken() + " millis to send to: " + sent.getEndpoint());
+                    }
+                }
+
+                @Override
+                public boolean isEnabled(EventObject event) {
+                    // we only want the sent events
+                    return event instanceof ExchangeSentEvent;
+                }
+
+                @Override
+                protected void doStart() throws Exception {
+                    // noop
+                }
+
+                @Override
+                protected void doStop() throws Exception {
+                    // noop
+                }
+            };
+
+            context.getManagementStrategy().addEventNotifier(eventNotifier);
+//            eventNotifier.start();
+    }
+    
     @Before
     public void setUp() throws Exception {
         broker = new BrokerService();
